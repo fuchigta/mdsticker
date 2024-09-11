@@ -1,9 +1,10 @@
-import { Fragment, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import "./App.css";
 import Markdown from "react-markdown";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { solarizedDarkAtom } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { invoke } from "@tauri-apps/api";
+import { appWindow } from "@tauri-apps/api/window";
 
 const sticker = {
   async create() {
@@ -20,6 +21,14 @@ const sticker = {
 function App() {
   const [editting, setEditting] = useState(false);
   const [markdown, setMarkdown] = useState("");
+
+  useEffect(() => {
+    appWindow.once('init-response', (e) => {
+      setMarkdown(e.payload as string)
+    })
+
+    appWindow.emit('init-request')
+  }, []);
 
   return (
     <div className="container">
