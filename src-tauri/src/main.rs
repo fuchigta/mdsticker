@@ -11,14 +11,15 @@ use sqlx::migrate::MigrateDatabase;
 use tauri::{async_runtime::block_on, AppHandle, Manager, State, WindowEvent};
 use uuid::Uuid;
 
-#[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
+#[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
 pub struct Sticker {
     uuid: String,
     markdown: String,
     pos_x: i32,
     pos_y: i32,
     height: u32,
-    width: u32
+    width: u32,
+    pinned: bool
 }
 
 impl Sticker {
@@ -30,8 +31,17 @@ impl Sticker {
             pos_y,
             height,
             width,
+            pinned: false,
         }
     }
+}
+
+#[tauri::command]
+async fn toggle_sticker_pinned(pool: State<'_, sqlx::SqlitePool>, window: tauri::Window) -> Result<(), String> {
+    let pinned = repository::toggle_sticker_pinned(&pool, window.label()).await.map_err(|e| e.to_string())?;
+    let _ = window.set_always_on_top(pinned);
+
+    Ok(())
 }
 
 #[tauri::command]
@@ -88,7 +98,7 @@ async fn restore_stickers(pool: &sqlx::SqlitePool, handle: tauri::AppHandle) -> 
     for sticker in stickers {
         let w = tauri::WindowBuilder::new(
             &handle,
-            sticker.uuid,
+            &sticker.uuid,
             tauri::WindowUrl::App("index.html".into()),
         )
         .title("mdsticker")
@@ -102,7 +112,7 @@ async fn restore_stickers(pool: &sqlx::SqlitePool, handle: tauri::AppHandle) -> 
         .map_err(|e| e.to_string())?;
 
         w.clone().once("init-request", move |_event| {
-            let _ = w.emit("init-response", sticker.markdown);
+            let _ = w.emit("init-response", sticker);
         });
     }
 
@@ -137,7 +147,8 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             save_sticker,
             new_sticker,
-            remove_sticker
+            remove_sticker,
+            toggle_sticker_pinned
         ])
         .setup(|app| {
             let dir = app_path(app.handle());

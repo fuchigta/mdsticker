@@ -2,7 +2,7 @@ use std::str::FromStr;
 
 use sqlx::{
     sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions, SqliteSynchronous},
-    SqlitePool
+    SqlitePool, Row
 };
 
 use crate::Sticker;
@@ -94,6 +94,20 @@ pub(crate) async fn update_sticker_size(pool: &SqlitePool, uuid: &str, width: u3
     tx.commit().await?;
 
     Ok(())
+}
+
+pub(crate) async fn toggle_sticker_pinned(pool: &SqlitePool, uuid: &str) -> DbResult<bool> {
+    let rows = sqlx::query("UPDATE sticker SET pinned=(CASE WHEN pinned=1 THEN 0 ELSE 1 END) WHERE uuid=? RETURNING pinned")
+        .bind(uuid)
+        .fetch_all(pool)
+        .await?;
+
+    for row in rows {
+        let pinned: i8 = row.try_get("pinned")?;
+        return Ok(pinned != 0)
+    }
+
+    Ok(false)
 }
 
 pub(crate) async fn remove_sticker(pool: &SqlitePool, uuid: &str) -> DbResult<()> {

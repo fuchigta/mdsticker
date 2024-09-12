@@ -16,15 +16,21 @@ const sticker = {
   async remove() {
     await invoke("remove_sticker");
   },
+  async togglePinned() {
+    await invoke("toggle_sticker_pinned");
+  },
 };
 
 function App() {
   const [editting, setEditting] = useState(false);
   const [markdown, setMarkdown] = useState("");
+  const [pinned, setPinned] = useState(false);
 
   useEffect(() => {
     appWindow.once('init-response', (e) => {
-      setMarkdown(e.payload as string)
+      const { markdown, pinned } = e.payload as { markdown: string, pinned: boolean }
+      setMarkdown(markdown)
+      setPinned(pinned)
     })
 
     appWindow.emit('init-request')
@@ -42,6 +48,15 @@ function App() {
             }}
           >
             {editting ? "DONE" : "EDIT"}
+          </button>
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              setPinned(!pinned)
+              sticker.togglePinned();
+            }}
+          >
+            {pinned ? "UNPIN" : "PIN"}
           </button>
         </div>
         <div className="manager">
