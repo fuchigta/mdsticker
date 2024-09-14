@@ -90,8 +90,7 @@ async fn new_sticker_pool(pool: &sqlx::SqlitePool, handle: tauri::AppHandle) -> 
     let label = Uuid::new_v4();
 
     let w = tauri::WindowBuilder::new(&handle, label, tauri::WindowUrl::App("index.html".into()))
-        .title("mdsticker")
-        .hidden_title(true)
+        .title("")
         .fullscreen(false)
         .minimizable(false)
         .maximizable(false)
@@ -179,8 +178,7 @@ async fn recover_stickers(
             &sticker.uuid,
             tauri::WindowUrl::App("index.html".into()),
         )
-        .title("mdsticker")
-        .hidden_title(true)
+        .title("")
         .fullscreen(false)
         .minimizable(false)
         .maximizable(false)
@@ -211,8 +209,7 @@ async fn restore_stickers(pool: &sqlx::SqlitePool, handle: tauri::AppHandle) -> 
             &sticker.uuid,
             tauri::WindowUrl::App("index.html".into()),
         )
-        .title("mdsticker")
-        .hidden_title(true)
+        .title("")
         .fullscreen(false)
         .minimizable(false)
         .maximizable(false)
@@ -329,8 +326,7 @@ fn main() {
                         "trashbox",
                         tauri::WindowUrl::App("trashbox.html".into()),
                     )
-                    .title("trashbox")
-                    .hidden_title(true)
+                    .title("")
                     .build();
                 }
                 "quit" => {
