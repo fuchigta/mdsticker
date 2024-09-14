@@ -88,7 +88,7 @@ function TrashBoxApp() {
       <main>
         {stickers.map((sticker) => (
           <div key={sticker.uuid} className="trash-sticker" style={{backgroundColor: sticker.color}}>
-            <label className="trash-sticker-header">
+            <label className="trash-sticker-header textarea">
               <div className="checkbox">
                 <span className="check">{sticker.checked ? <VscCheck /> : " "}</span>
                 <input

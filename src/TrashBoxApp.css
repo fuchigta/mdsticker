@@ -49,6 +49,7 @@ main {
   align-items: center;
   font-family: inherit;
   font-weight: bold;
+  padding: .25em .5em;
 }
 
 .trash-sticker-header > .checkbox {
@@ -90,7 +91,7 @@ main {
   margin-top: .25em;
 }
 
-.textarea {
+.trash-sticker-body .textarea {
   width: 100%;
   height: 100%;
   padding: .25em 1em;
