@@ -1,0 +1,69 @@
+:root {
+  font-family: Inter, Avenir, Helvetica, Arial, sans-serif;
+  font-size: 16px;
+
+  --font-color: #0f0f0f;
+  --bg-color: #f6f6f6;
+  --link-font-color: #646cff;
+  --link-font-color_hover: #535bf2;
+  --button-font-color: #0f0f0f;
+  --button-bg-color: #ffffff;
+  --button-bg-color_active: #e8e8e8;
+  --button-border-color_hover: #396cd8;
+
+  color: var(--font-color);
+  background-color: var(--bg-color);
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-text-size-adjust: 100%;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --font-color: #f6f6f6;
+    --bg-color: #2f2f2f;
+    --link-font-color: #24c8db;
+    --button-font-color: #ffffff;
+    --button-bg-color: #0f0f0f98;
+    --button-bg-color_active: #0f0f0f69;
+  }
+}
+
+a {
+  color: var(--link-font-color);
+}
+
+a:hover {
+  color: var(--link-font-color_hover);
+}
+
+button,
+.button,
+textarea,
+.textarea {
+  border-radius: 6px;
+  font-size: 1em;
+  font-weight: 500;
+  border: 1px solid transparent;
+  color: var(--button-font-color);
+  background-color: var(--button-bg-color);
+}
+
+button,
+.button {
+  cursor: pointer;
+}
+
+button:hover,
+.button:hover {
+  border-color: var(--button-border-color_hover);
+}
+
+button:active,
+.button:active {
+  border-color: var(--button-border-color_hover);
+  background-color: var(--button-bg-color_active);
+}

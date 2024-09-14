@@ -1,4 +1,5 @@
 import { Fragment, useEffect, useState } from "react";
+import "./base.css";
 import "./App.css";
 import Markdown from "react-markdown";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
@@ -112,7 +113,7 @@ function App() {
               }}
             ></textarea>
           ) : (
-            <div className="markdown">
+            <div className="markdown textarea">
               <Markdown
                 children={markdown}
                 components={{

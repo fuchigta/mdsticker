@@ -1,0 +1,29 @@
+.container {
+  height: 100vh;
+  width: 100vw;
+  display: flex;
+  flex-direction: column;
+  padding: .75em 1em;
+}
+
+header {
+  display: flex;
+}
+
+header button {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  padding: .25em 0;
+  min-width: 2.5em;
+  font-size: 1.5em;
+}
+
+header button:not(:first-of-type) {
+  margin-left: .5em;
+}
+
+main {
+  margin-top: .75em;
+  flex: 1;
+}

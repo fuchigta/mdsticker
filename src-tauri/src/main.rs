@@ -110,11 +110,20 @@ async fn new_sticker_pool(pool: &sqlx::SqlitePool, handle: tauri::AppHandle) -> 
 async fn remove_sticker(
     pool: State<'_, sqlx::SqlitePool>,
     window: tauri::Window,
+    handle: tauri::AppHandle
 ) -> Result<(), String> {
     repository::remove_sticker(&pool, window.label())
         .await
         .map_err(|e| e.to_string())?;
     let _ = window.close();
+
+    match handle.get_window("trashbox") {
+        Some(w) => {
+            w.emit("reload", "").map_err(|e| e.to_string())?;
+        },
+        None => {}
+    }
+
     Ok(())
 }
 
@@ -127,6 +136,59 @@ async fn load_sticker(
         .await
         .map_err(|e| e.to_string())?;
     Ok(sticker)
+}
+
+#[tauri::command]
+async fn load_trashbox_stickers(
+    pool: State<'_, sqlx::SqlitePool>
+) -> Result<Vec<Sticker>, String> {
+    let stickers = repository::list_archived_stickers(&pool)
+        .await
+        .map_err(|e| e.to_string())?;
+    Ok(stickers)
+}
+
+#[tauri::command]
+async fn delete_stickers(
+    pool: State<'_, sqlx::SqlitePool>,
+    stickers: Vec<Sticker>
+) -> Result<(), String> {
+    repository::delete_stickers(&pool, &stickers)
+        .await
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
+async fn recover_stickers(
+    pool: State<'_, sqlx::SqlitePool>,
+    handle: tauri::AppHandle,
+    stickers: Vec<Sticker>
+) -> Result<(), String> {
+    repository::recover_stickers(&pool, &stickers)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    for sticker in &stickers {
+        let _ = tauri::WindowBuilder::new(
+            &handle,
+            &sticker.uuid,
+            tauri::WindowUrl::App("index.html".into()),
+        )
+        .title("mdsticker")
+        .hidden_title(true)
+        .fullscreen(false)
+        .minimizable(false)
+        .maximizable(false)
+        .closable(false)
+        .position(sticker.pos_x.into(), sticker.pos_y.into())
+        .inner_size(sticker.width.into(), sticker.height.into())
+        .always_on_top(sticker.pinned)
+        .build()
+        .map_err(|e| e.to_string())?;
+    }
+
+    Ok(())
 }
 
 async fn restore_stickers(pool: &sqlx::SqlitePool, handle: tauri::AppHandle) -> Result<(), String> {
@@ -185,18 +247,20 @@ fn path_mapper(mut app_path: PathBuf, connection_string: &str) -> String {
 }
 
 fn main() {
-    let new_sticker_menu = CustomMenuItem::new("new_sticker".to_string(), "New sticker");
-    let quit_menu = CustomMenuItem::new("quit".to_string(), "Quit");
     let tray_menu = SystemTrayMenu::new()
-        .add_item(new_sticker_menu)
+        .add_item(CustomMenuItem::new("new_sticker".to_string(), "New sticker"))
+        .add_item(CustomMenuItem::new("trashbox".to_string(), "Trashbox"))
         .add_native_item(SystemTrayMenuItem::Separator)
-        .add_item(quit_menu);
+        .add_item(CustomMenuItem::new("quit".to_string(), "Quit"));
     let system_tray = SystemTray::new().with_menu(tray_menu);
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
             save_sticker_markdown,
             save_sticker_color,
             load_sticker,
+            load_trashbox_stickers,
+            delete_stickers,
+            recover_stickers,
             new_sticker,
             remove_sticker,
             toggle_sticker_pinned
@@ -254,6 +318,16 @@ fn main() {
             SystemTrayEvent::MenuItemClick { id, .. } => match id.as_str() {
                 "new_sticker" => {
                     let _ = block_on(new_sticker(app.state(), app.app_handle()));
+                }
+                "trashbox" => {
+                    let _ = tauri::WindowBuilder::new(
+                        &app.app_handle(),
+                        "trashbox",
+                        tauri::WindowUrl::App("trashbox.html".into()),
+                    )
+                    .title("trashbox")
+                    .hidden_title(true)
+                    .build();
                 }
                 "quit" => {
                     std::process::exit(0);
