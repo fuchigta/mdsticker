@@ -28,7 +28,7 @@
     },
     "bundle": {
       "active": true,
-      "targets": "nsis",
+      "targets": ["nsis", "dmg"],
       "identifier": "com.github.fuchigta.mdsticker",
       "icon": [
         "icons/32x32.png",
