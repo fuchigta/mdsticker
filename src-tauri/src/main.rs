@@ -17,6 +17,7 @@ use uuid::Uuid;
 pub struct Sticker {
     uuid: String,
     markdown: String,
+    color: String,
     pos_x: i32,
     pos_y: i32,
     height: u32,
@@ -29,6 +30,7 @@ impl Sticker {
         Sticker {
             uuid: uuid.to_string(),
             markdown: "".to_string(),
+            color: "".to_string(),
             pos_x,
             pos_y,
             height,
@@ -52,12 +54,23 @@ async fn toggle_sticker_pinned(
 }
 
 #[tauri::command]
-async fn save_sticker(
+async fn save_sticker_markdown(
     pool: State<'_, sqlx::SqlitePool>,
     window: tauri::Window,
     markdown: &str,
 ) -> Result<(), String> {
     repository::update_sticker_markdown(&pool, window.label(), markdown)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+async fn save_sticker_color(
+    pool: State<'_, sqlx::SqlitePool>,
+    window: tauri::Window,
+    color: &str,
+) -> Result<(), String> {
+    repository::update_sticker_color(&pool, window.label(), color)
         .await
         .map_err(|e| e.to_string())
 }
@@ -80,7 +93,7 @@ async fn new_sticker_pool(pool: &sqlx::SqlitePool, handle: tauri::AppHandle) -> 
         .minimizable(false)
         .maximizable(false)
         .closable(false)
-        .inner_size(500.0, 500.0)
+        .inner_size(550.0, 500.0)
         .build()
         .map_err(|e| e.to_string())?;
 
@@ -182,7 +195,8 @@ fn main() {
     let system_tray = SystemTray::new().with_menu(tray_menu);
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
-            save_sticker,
+            save_sticker_markdown,
+            save_sticker_color,
             load_sticker,
             new_sticker,
             remove_sticker,

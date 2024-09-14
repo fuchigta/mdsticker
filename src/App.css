@@ -24,13 +24,27 @@ header {
   display: flex;
 }
 
-header .controller {
+header > .controller {
   margin-right: auto;
 }
 
-header .controller button:not(:first-of-type),
-header .manager button:not(:first-of-type) {
+header > .controller > *:not(:first-child),
+header > .manager > *:not(:first-child) {
   margin-left: .5em;
+}
+
+header > .controller > .color-button {
+  display: inline-block;
+  position: relative;
+}
+
+header > .controller > .color-button > input[type="color"] {
+  opacity: 0;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
 }
 
 main {
@@ -81,9 +95,13 @@ textarea,
 }
 
 button {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
   cursor: pointer;
   padding: .25em 0;
-  min-width: 6em;
+  min-width: 2.5em;
+  font-size: 1.5em;
 }
 button:hover {
   border-color: #396cd8;

@@ -37,9 +37,10 @@ pub(crate) async fn migrate_database(pool: &SqlitePool) -> DbResult<()> {
 pub(crate) async fn insert_sticker(pool: &SqlitePool, sticker: Sticker) -> DbResult<()> {
     let mut tx = pool.begin().await?;
 
-    sqlx::query("INSERT INTO sticker (uuid, markdown, pos_x, pos_y, height, width) VALUES (?, ?, ?, ?, ?, ?)")
+    sqlx::query("INSERT INTO sticker (uuid, markdown, color, pos_x, pos_y, height, width) VALUES (?, ?, ?, ?, ?, ?, ?)")
         .bind(sticker.uuid)
         .bind(sticker.markdown)
+        .bind(sticker.color)
         .bind(sticker.pos_x)
         .bind(sticker.pos_y)
         .bind(sticker.height)
@@ -57,6 +58,20 @@ pub(crate) async fn update_sticker_markdown(pool: &SqlitePool, uuid: &str, markd
 
     sqlx::query("UPDATE sticker SET markdown=? WHERE uuid=?")
         .bind(markdown)
+        .bind(uuid)
+        .execute(&mut *tx)
+        .await?;
+
+    tx.commit().await?;
+
+    Ok(())
+}
+
+pub(crate) async fn update_sticker_color(pool: &SqlitePool, uuid: &str, color: &str) -> DbResult<()> {
+    let mut tx = pool.begin().await?;
+
+    sqlx::query("UPDATE sticker SET color=? WHERE uuid=?")
+        .bind(color)
         .bind(uuid)
         .execute(&mut *tx)
         .await?;

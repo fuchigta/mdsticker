@@ -4,10 +4,12 @@ import Markdown from "react-markdown";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { solarizedDarkAtom } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { invoke } from "@tauri-apps/api";
+import { VscEdit, VscNewFile, VscPin, VscPinned, VscSave, VscSymbolColor, VscTrash } from "react-icons/vsc";
 
 interface Sticker {
   uuid: string;
   markdown: string;
+  color: string;
   pinned: boolean;
 }
 
@@ -18,8 +20,11 @@ const sticker = {
   async load() {
     return await invoke<Sticker>("load_sticker");
   },
-  async save(markdown: string) {
-    await invoke("save_sticker", { markdown });
+  async saveMarkdown(markdown: string) {
+    await invoke("save_sticker_markdown", { markdown });
+  },
+  async saveColor(color: string) {
+    await invoke("save_sticker_color", { color });
   },
   async remove() {
     await invoke("remove_sticker");
@@ -32,37 +37,50 @@ const sticker = {
 function App() {
   const [editting, setEditting] = useState(false);
   const [markdown, setMarkdown] = useState("");
+  const [color, setColor] = useState("");
   const [pinned, setPinned] = useState(false);
 
   useEffect(() => {
-    sticker.load().then(({ markdown, pinned }: Sticker) => {
-      setMarkdown(markdown)
-      setPinned(pinned)
-    })
+    sticker.load().then(({ markdown, color, pinned }: Sticker) => {
+      setMarkdown(markdown);
+      setColor(color);
+      setPinned(pinned);
+    });
   }, []);
 
   return (
-    <div className="container">
+    <div className="container" style={{ backgroundColor: color }}>
       <header>
         <div className="controller">
           <button
             onClick={(e) => {
               e.preventDefault();
               setEditting(!editting);
-              sticker.save(markdown);
+              sticker.saveMarkdown(markdown);
             }}
           >
-            {editting ? "DONE" : "EDIT"}
+            {editting ? <VscSave /> : <VscEdit />}
           </button>
           <button
             onClick={(e) => {
               e.preventDefault();
-              setPinned(!pinned)
+              setPinned(!pinned);
               sticker.togglePinned();
             }}
           >
-            {pinned ? "UNPIN" : "PIN"}
+            {pinned ? <VscPinned /> : <VscPin />}
           </button>
+          <div className="color-button">
+            <button><VscSymbolColor /></button>
+            <input
+              type="color"
+              onChange={(e) => {
+                e.preventDefault();
+                setColor(e.target.value);
+                sticker.saveColor(e.target.value);
+              }}
+            />
+          </div>
         </div>
         <div className="manager">
           <button
@@ -71,7 +89,7 @@ function App() {
               sticker.create();
             }}
           >
-            NEW
+            <VscNewFile />
           </button>
           <button
             onClick={(e) => {
@@ -79,7 +97,7 @@ function App() {
               sticker.remove();
             }}
           >
-            REMOVE
+            <VscTrash />
           </button>
         </div>
       </header>
