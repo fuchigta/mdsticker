@@ -7,7 +7,6 @@ use std::path::PathBuf;
 
 use repository::list_stickers;
 use serde::{Deserialize, Serialize};
-use sqlx::migrate::MigrateDatabase;
 use tauri::{
     async_runtime::block_on, AppHandle, CustomMenuItem, Manager, State, SystemTray, SystemTrayEvent, SystemTrayMenu, SystemTrayMenuItem, WindowEvent
 };
@@ -93,7 +92,7 @@ async fn new_sticker_pool(pool: &sqlx::SqlitePool, handle: tauri::AppHandle) -> 
         .minimizable(false)
         .maximizable(false)
         .closable(false)
-        .inner_size(550.0, 500.0)
+        .inner_size(400.0, 400.0)
         .build()
         .map_err(|e| e.to_string())?;
 
@@ -206,14 +205,9 @@ fn main() {
         .setup(|app| {
             let dir = app_path(app.handle());
             std::fs::create_dir_all(&dir).expect("create app dir failed");
-            let fqdb = path_mapper(dir, "sqlite:app.db");
-            let exists = block_on(sqlx::sqlite::Sqlite::database_exists(&fqdb)).unwrap_or(false);
-            let pool = block_on(repository::create_sqlite_pool(&fqdb))?;
+            let pool = block_on(repository::create_sqlite_pool(&path_mapper(dir, "sqlite:app.db")))?;
 
-            if !exists {
-                block_on(repository::migrate_database(&pool))?;
-            }
-
+            block_on(repository::migrate_database(&pool))?;
             block_on(restore_stickers(&pool, app.handle()))?;
 
             app.manage(pool);
