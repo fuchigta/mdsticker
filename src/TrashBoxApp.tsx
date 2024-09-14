@@ -2,8 +2,9 @@ import { useEffect, useState } from "react";
 import "./base.css";
 import "./TrashBoxApp.css";
 import { invoke } from "@tauri-apps/api";
-import { VscReply, VscTrash } from "react-icons/vsc";
+import { VscCheck, VscCheckAll, VscReply, VscTrash } from "react-icons/vsc";
 import { appWindow } from "@tauri-apps/api/window";
+import StickerMarkdown from "./StickerMarkdown";
 
 interface Sticker {
   checked: boolean;
@@ -30,84 +31,91 @@ function TrashBoxApp() {
   const [stickers, setStickers] = useState([] as Sticker[]);
 
   useEffect(() => {
-    const load = () => trashbox.loadStickers().then((stickers: Sticker[]) => {
-      setStickers(stickers.map((sticker) => ({ ...sticker, checked: false })));
-    });
+    const load = () =>
+      trashbox.loadStickers().then((stickers: Sticker[]) => {
+        setStickers(
+          stickers.map((sticker) => ({ ...sticker, checked: false }))
+        );
+      });
 
     load();
 
     appWindow.listen("reload", () => {
       load();
-    })
+    });
   }, []);
 
   return (
     <div className="container">
       <header>
-        <button
-          onClick={(e) => {
-            e.preventDefault();
-            trashbox.deleteStickers(stickers.filter((s) => s.checked));
-            setStickers(stickers.filter((s) => !s.checked));
-          }}
-        >
-          <VscTrash />
-        </button>
-        <button
-          onClick={(e) => {
-            e.preventDefault();
-            trashbox.recoverStickers(stickers.filter((s) => s.checked));
-            setStickers(stickers.filter((s) => !s.checked));
-          }}
-        >
-          <VscReply />
-        </button>
+        <div className="controller">
+          <button
+              onClick={(e) => {
+                e.preventDefault();
+
+                if (stickers.every((s) => s.checked)) {
+                  setStickers(stickers.map((s) => ({ ...s, checked: false })));
+                  return;
+                }
+
+                setStickers(stickers.map((s) => ({ ...s, checked: true })));
+              }}
+            >
+              <VscCheckAll />
+          </button>
+        </div>
+        <div className="manager">
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              trashbox.deleteStickers(stickers.filter((s) => s.checked));
+              setStickers(stickers.filter((s) => !s.checked));
+            }}
+          >
+            <VscTrash />
+          </button>
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              trashbox.recoverStickers(stickers.filter((s) => s.checked));
+              setStickers(stickers.filter((s) => !s.checked));
+            }}
+          >
+            <VscReply />
+          </button>
+        </div>
       </header>
       <main>
-        <table>
-          <thead>
-            <tr>
-              <th>
+        {stickers.map((sticker) => (
+          <div key={sticker.uuid} className="trash-sticker" style={{backgroundColor: sticker.color}}>
+            <label className="trash-sticker-header">
+              <div className="checkbox">
+                <span className="check">{sticker.checked ? <VscCheck /> : " "}</span>
                 <input
                   type="checkbox"
-                  checked={stickers.length !== 0 && stickers.every((s) => s.checked)}
-                  onChange={(e) => {
+                  checked={sticker.checked}
+                  onChange={() => {
                     setStickers(
-                      stickers.map((s) => ({ ...s, checked: e.target.checked }))
+                      stickers.map((s) => {
+                        if (s.uuid == sticker.uuid) {
+                          return { ...s, checked: !s.checked };
+                        }
+
+                        return s;
+                      })
                     );
                   }}
                 />
-              </th>
-              <th>Markdown</th>
-              <th>Last Update</th>
-            </tr>
-          </thead>
-          <tbody>
-            {stickers.map((sticker) => (
-              <tr key={sticker.uuid}>
-                <td>
-                  <input
-                    type="checkbox"
-                    checked={sticker.checked}
-                    onChange={(e) => {
-                      setStickers(
-                        stickers.map((s) => {
-                          if (s.uuid == sticker.uuid) {
-                            return { ...s, checked: !s.checked };
-                          }
-
-                          return s;
-                        })
-                      );
-                    }}
-                  />
-                </td>
-                <td>{sticker.markdown}</td>
-                <td>{sticker.updated_at}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+              </div>
+              <span>
+                {sticker.updated_at}
+              </span>
+            </label>
+            <div className="trash-sticker-body">
+              <StickerMarkdown className="textarea" markdown={sticker.markdown} />
+            </div>
+          </div>
+        ))}
       </main>
     </div>
   );

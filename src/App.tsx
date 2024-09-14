@@ -1,11 +1,9 @@
 import { Fragment, useEffect, useState } from "react";
 import "./base.css";
 import "./App.css";
-import Markdown from "react-markdown";
-import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import { solarizedDarkAtom } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { invoke } from "@tauri-apps/api";
 import { VscEdit, VscNewFile, VscPin, VscPinned, VscSave, VscSymbolColor, VscTrash } from "react-icons/vsc";
+import StickerMarkdown from "./StickerMarkdown";
 
 interface Sticker {
   uuid: string;
@@ -113,33 +111,7 @@ function App() {
               }}
             ></textarea>
           ) : (
-            <div className="markdown textarea">
-              <Markdown
-                children={markdown}
-                components={{
-                  code(props) {
-                    const { children, className, node, ref, ...rest } = props;
-                    const match = /language-(\w+)/.exec(className || "");
-                    return match ? (
-                      <SyntaxHighlighter
-                        ref={
-                          ref as React.LegacyRef<SyntaxHighlighter> | undefined
-                        }
-                        {...rest}
-                        PreTag="div"
-                        children={String(children).replace(/\n$/, "")}
-                        language={match[1]}
-                        style={solarizedDarkAtom}
-                      />
-                    ) : (
-                      <code ref={ref} {...rest} className={className}>
-                        {children}
-                      </code>
-                    );
-                  },
-                }}
-              />
-            </div>
+            <StickerMarkdown className="textarea" markdown={markdown} />
           )}
         </Fragment>
       </main>

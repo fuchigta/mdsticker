@@ -1,0 +1,11 @@
+.StickerMarkdown h4,
+.StickerMarkdown h5,
+.StickerMarkdown h6 {
+  font-size: 1em;
+}
+
+.StickerMarkdown img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
