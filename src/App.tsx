@@ -4,11 +4,19 @@ import Markdown from "react-markdown";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { solarizedDarkAtom } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { invoke } from "@tauri-apps/api";
-import { appWindow } from "@tauri-apps/api/window";
+
+interface Sticker {
+  uuid: string;
+  markdown: string;
+  pinned: boolean;
+}
 
 const sticker = {
   async create() {
     await invoke("new_sticker");
+  },
+  async load() {
+    return await invoke<Sticker>("load_sticker");
   },
   async save(markdown: string) {
     await invoke("save_sticker", { markdown });
@@ -27,13 +35,10 @@ function App() {
   const [pinned, setPinned] = useState(false);
 
   useEffect(() => {
-    appWindow.once('init-response', (e) => {
-      const { markdown, pinned } = e.payload as { markdown: string, pinned: boolean }
+    sticker.load().then(({ markdown, pinned }: Sticker) => {
       setMarkdown(markdown)
       setPinned(pinned)
     })
-
-    appWindow.emit('init-request')
   }, []);
 
   return (

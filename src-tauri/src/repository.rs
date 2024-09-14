@@ -129,3 +129,9 @@ pub(crate) async fn list_stickers(pool: &SqlitePool) -> DbResult<Vec<Sticker>> {
 
     Ok(stickers)
 }
+
+pub(crate) async fn get_sticker(pool: &SqlitePool, uuid: &str) -> DbResult<Sticker> {
+    let sticker = sqlx::query_as::<_, Sticker>("SELECT * FROM sticker WHERE uuid = ?").bind(uuid).fetch_one(pool).await?;
+
+    Ok(sticker)
+}

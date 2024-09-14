@@ -80,6 +80,7 @@ async fn new_sticker_pool(pool: &sqlx::SqlitePool, handle: tauri::AppHandle) -> 
         .minimizable(false)
         .maximizable(false)
         .closable(false)
+        .inner_size(500.0, 500.0)
         .build()
         .map_err(|e| e.to_string())?;
 
@@ -105,6 +106,17 @@ async fn remove_sticker(
     Ok(())
 }
 
+#[tauri::command]
+async fn load_sticker(
+    pool: State<'_, sqlx::SqlitePool>,
+    window: tauri::Window,
+) -> Result<Sticker, String> {
+    let sticker = repository::get_sticker(&pool, window.label())
+        .await
+        .map_err(|e| e.to_string())?;
+    Ok(sticker)
+}
+
 async fn restore_stickers(pool: &sqlx::SqlitePool, handle: tauri::AppHandle) -> Result<(), String> {
     let stickers = list_stickers(pool).await.unwrap();
 
@@ -116,7 +128,7 @@ async fn restore_stickers(pool: &sqlx::SqlitePool, handle: tauri::AppHandle) -> 
     println!("restore {} stickers", stickers.len());
 
     for sticker in stickers {
-        let w = tauri::WindowBuilder::new(
+        let _ = tauri::WindowBuilder::new(
             &handle,
             &sticker.uuid,
             tauri::WindowUrl::App("index.html".into()),
@@ -129,12 +141,9 @@ async fn restore_stickers(pool: &sqlx::SqlitePool, handle: tauri::AppHandle) -> 
         .closable(false)
         .position(sticker.pos_x.into(), sticker.pos_y.into())
         .inner_size(sticker.width.into(), sticker.height.into())
+        .always_on_top(sticker.pinned)
         .build()
         .map_err(|e| e.to_string())?;
-
-        w.clone().once("init-request", move |_event| {
-            let _ = w.emit("init-response", sticker);
-        });
     }
 
     Ok(())
@@ -174,6 +183,7 @@ fn main() {
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
             save_sticker,
+            load_sticker,
             new_sticker,
             remove_sticker,
             toggle_sticker_pinned
