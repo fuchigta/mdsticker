@@ -11,6 +11,7 @@ interface Sticker {
   markdown: string;
   color: string;
   pinned: boolean;
+  updated_at: string;
 }
 
 const trashbox = {
@@ -78,6 +79,7 @@ function TrashBoxApp() {
                 />
               </th>
               <th>Markdown</th>
+              <th>Last Update</th>
             </tr>
           </thead>
           <tbody>
@@ -101,6 +103,7 @@ function TrashBoxApp() {
                   />
                 </td>
                 <td>{sticker.markdown}</td>
+                <td>{sticker.updated_at}</td>
               </tr>
             ))}
           </tbody>

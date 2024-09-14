@@ -22,6 +22,8 @@ pub struct Sticker {
     height: u32,
     width: u32,
     pinned: bool,
+    created_at: String,
+    updated_at: String
 }
 
 impl Sticker {
@@ -35,6 +37,8 @@ impl Sticker {
             height,
             width,
             pinned: false,
+            created_at: "".to_string(),
+            updated_at: "".to_string()
         }
     }
 }

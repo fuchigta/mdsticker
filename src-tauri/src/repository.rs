@@ -164,13 +164,13 @@ pub(crate) async fn recover_stickers(pool: &SqlitePool, stickers: &Vec<Sticker>)
 }
 
 pub(crate) async fn list_stickers(pool: &SqlitePool) -> DbResult<Vec<Sticker>> {
-    let stickers = sqlx::query_as::<_, Sticker>("SELECT * FROM sticker WHERE archived = 0 ORDER BY uuid").fetch_all(pool).await?;
+    let stickers = sqlx::query_as::<_, Sticker>("SELECT * FROM sticker WHERE archived = 0 ORDER BY updated_at desc").fetch_all(pool).await?;
 
     Ok(stickers)
 }
 
 pub(crate) async fn list_archived_stickers(pool: &SqlitePool) -> DbResult<Vec<Sticker>> {
-    let stickers = sqlx::query_as::<_, Sticker>("SELECT * FROM sticker WHERE archived = 1 ORDER BY uuid").fetch_all(pool).await?;
+    let stickers = sqlx::query_as::<_, Sticker>("SELECT * FROM sticker WHERE archived = 1 ORDER BY updated_at desc").fetch_all(pool).await?;
 
     Ok(stickers)
 }
