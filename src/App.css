@@ -74,6 +74,12 @@ textarea,
   font-size: 1em;
 }
 
+.markdown img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
 button {
   cursor: pointer;
   padding: .25em 0;

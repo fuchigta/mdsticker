@@ -8,7 +8,9 @@ use std::path::PathBuf;
 use repository::list_stickers;
 use serde::{Deserialize, Serialize};
 use sqlx::migrate::MigrateDatabase;
-use tauri::{async_runtime::block_on, AppHandle, Manager, State, WindowEvent};
+use tauri::{
+    async_runtime::block_on, AppHandle, CustomMenuItem, Manager, State, SystemTray, SystemTrayEvent, SystemTrayMenu, SystemTrayMenuItem, WindowEvent
+};
 use uuid::Uuid;
 
 #[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
@@ -19,7 +21,7 @@ pub struct Sticker {
     pos_y: i32,
     height: u32,
     width: u32,
-    pinned: bool
+    pinned: bool,
 }
 
 impl Sticker {
@@ -37,50 +39,68 @@ impl Sticker {
 }
 
 #[tauri::command]
-async fn toggle_sticker_pinned(pool: State<'_, sqlx::SqlitePool>, window: tauri::Window) -> Result<(), String> {
-    let pinned = repository::toggle_sticker_pinned(&pool, window.label()).await.map_err(|e| e.to_string())?;
+async fn toggle_sticker_pinned(
+    pool: State<'_, sqlx::SqlitePool>,
+    window: tauri::Window,
+) -> Result<(), String> {
+    let pinned = repository::toggle_sticker_pinned(&pool, window.label())
+        .await
+        .map_err(|e| e.to_string())?;
     let _ = window.set_always_on_top(pinned);
 
     Ok(())
 }
 
 #[tauri::command]
-async fn save_sticker(pool: State<'_, sqlx::SqlitePool>, window: tauri::Window, markdown: &str) -> Result<(), String> {
-    repository::update_sticker_markdown(&pool, window.label(), markdown).await.map_err(|e| e.to_string())
+async fn save_sticker(
+    pool: State<'_, sqlx::SqlitePool>,
+    window: tauri::Window,
+    markdown: &str,
+) -> Result<(), String> {
+    repository::update_sticker_markdown(&pool, window.label(), markdown)
+        .await
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-async fn new_sticker(pool: State<'_, sqlx::SqlitePool>, handle: tauri::AppHandle) -> Result<(), String> {
+async fn new_sticker(
+    pool: State<'_, sqlx::SqlitePool>,
+    handle: tauri::AppHandle,
+) -> Result<(), String> {
     new_sticker_pool(&pool, handle).await
 }
 
 async fn new_sticker_pool(pool: &sqlx::SqlitePool, handle: tauri::AppHandle) -> Result<(), String> {
     let label = Uuid::new_v4();
 
-    let w = tauri::WindowBuilder::new(
-        &handle,
-        label,
-        tauri::WindowUrl::App("index.html".into()),
-    )
-    .title("mdsticker")
-    .fullscreen(false)
-    .minimizable(false)
-    .maximizable(false)
-    .closable(false)
-    .build()
-    .map_err(|e| e.to_string())?;
+    let w = tauri::WindowBuilder::new(&handle, label, tauri::WindowUrl::App("index.html".into()))
+        .title("mdsticker")
+        .hidden_title(true)
+        .fullscreen(false)
+        .minimizable(false)
+        .maximizable(false)
+        .closable(false)
+        .build()
+        .map_err(|e| e.to_string())?;
 
     let pos = w.outer_position().map_err(|e| e.to_string())?;
     let size = w.outer_size().map_err(|e| e.to_string())?;
 
     let sticker = Sticker::new(w.label(), pos.x, pos.y, size.height, size.width);
 
-    repository::insert_sticker(&pool, sticker).await.map_err(|e| e.to_string())
+    repository::insert_sticker(&pool, sticker)
+        .await
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-async fn remove_sticker(pool: State<'_, sqlx::SqlitePool>, window: tauri::Window) -> Result<(), String> {
-    repository::remove_sticker(&pool, window.label()).await.map_err(|e| e.to_string())?;
+async fn remove_sticker(
+    pool: State<'_, sqlx::SqlitePool>,
+    window: tauri::Window,
+) -> Result<(), String> {
+    repository::remove_sticker(&pool, window.label())
+        .await
+        .map_err(|e| e.to_string())?;
     let _ = window.close();
     Ok(())
 }
@@ -90,7 +110,7 @@ async fn restore_stickers(pool: &sqlx::SqlitePool, handle: tauri::AppHandle) -> 
 
     if stickers.len() == 0 {
         println!("no restore. create new sticker.");
-        return new_sticker_pool(pool, handle).await
+        return new_sticker_pool(pool, handle).await;
     }
 
     println!("restore {} stickers", stickers.len());
@@ -102,6 +122,7 @@ async fn restore_stickers(pool: &sqlx::SqlitePool, handle: tauri::AppHandle) -> 
             tauri::WindowUrl::App("index.html".into()),
         )
         .title("mdsticker")
+        .hidden_title(true)
         .fullscreen(false)
         .minimizable(false)
         .maximizable(false)
@@ -143,6 +164,13 @@ fn path_mapper(mut app_path: PathBuf, connection_string: &str) -> String {
 }
 
 fn main() {
+    let new_sticker_menu = CustomMenuItem::new("new_sticker".to_string(), "New sticker");
+    let quit_menu = CustomMenuItem::new("quit".to_string(), "Quit");
+    let tray_menu = SystemTrayMenu::new()
+        .add_item(new_sticker_menu)
+        .add_native_item(SystemTrayMenuItem::Separator)
+        .add_item(quit_menu);
+    let system_tray = SystemTray::new().with_menu(tray_menu);
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
             save_sticker,
@@ -150,6 +178,7 @@ fn main() {
             remove_sticker,
             toggle_sticker_pinned
         ])
+        .system_tray(system_tray)
         .setup(|app| {
             let dir = app_path(app.handle());
             std::fs::create_dir_all(&dir).expect("create app dir failed");
@@ -160,7 +189,7 @@ fn main() {
             if !exists {
                 block_on(repository::migrate_database(&pool))?;
             }
-            
+
             block_on(restore_stickers(&pool, app.handle()))?;
 
             app.manage(pool);
@@ -173,16 +202,54 @@ fn main() {
 
             match event.event() {
                 WindowEvent::Resized(size) => {
-                    println!("resized: {} width={} height={}", event.window().label(), size.width, size.height);
-                    let _ = block_on(repository::update_sticker_size(&pool, event.window().label(), size.width, size.height));
+                    println!(
+                        "resized: {} width={} height={}",
+                        event.window().label(),
+                        size.width,
+                        size.height
+                    );
+                    let _ = block_on(repository::update_sticker_size(
+                        &pool,
+                        event.window().label(),
+                        size.width,
+                        size.height,
+                    ));
                 }
                 WindowEvent::Moved(position) => {
-                    println!("moved: {} x={} y={}", event.window().label(), position.x, position.y);
-                    let _ = block_on(repository::update_sticker_position(&pool, event.window().label(), position.x, position.y));
+                    println!(
+                        "moved: {} x={} y={}",
+                        event.window().label(),
+                        position.x,
+                        position.y
+                    );
+                    let _ = block_on(repository::update_sticker_position(
+                        &pool,
+                        event.window().label(),
+                        position.x,
+                        position.y,
+                    ));
                 }
                 _ => {}
             }
         })
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .on_system_tray_event(|app, event| match event {
+            SystemTrayEvent::MenuItemClick { id, .. } => match id.as_str() {
+                "new_sticker" => {
+                    let _ = block_on(new_sticker(app.state(), app.app_handle()));
+                }
+                "quit" => {
+                    std::process::exit(0);
+                }
+                _ => {}
+            },
+            _ => {}
+        })
+        .build(tauri::generate_context!())
+        .expect("error while running tauri application")
+        .run(|_app_handle, event| match event {
+            tauri::RunEvent::ExitRequested { api, .. } => {
+                api.prevent_exit();
+            }
+            _ => {}
+        });
 }
