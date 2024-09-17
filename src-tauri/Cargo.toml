@@ -1,8 +1,8 @@
 [package]
 name = "mdsticker"
-version = "0.1.0"
-description = "A Tauri App"
-authors = ["you"]
+version = "1.0.0"
+description = "A simple sticky note app where you can write in markdown."
+authors = ["fuchigta"]
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
