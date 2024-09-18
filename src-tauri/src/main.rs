@@ -44,6 +44,16 @@ impl Sticker {
 }
 
 #[tauri::command]
+async fn open_url(
+    handle: tauri::AppHandle,
+    url: &str
+) -> Result<(), String> {
+    tauri::api::shell::open(&handle.app_handle().shell_scope(), url, None).map_err(|e| e.to_string())?;
+
+    Ok(())
+}
+
+#[tauri::command]
 async fn toggle_sticker_pinned(
     pool: State<'_, sqlx::SqlitePool>,
     window: tauri::Window,
@@ -256,6 +266,7 @@ fn main() {
     let system_tray = SystemTray::new().with_menu(tray_menu);
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
+            open_url,
             save_sticker_markdown,
             save_sticker_color,
             load_sticker,
