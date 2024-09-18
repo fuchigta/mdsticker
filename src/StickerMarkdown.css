@@ -1,3 +1,12 @@
+.StickerMarkdown h1,
+.StickerMarkdown h2,
+.StickerMarkdown h3,
+.StickerMarkdown h4,
+.StickerMarkdown h5,
+.StickerMarkdown h6 {
+  margin-bottom: .25em;
+}
+
 .StickerMarkdown h4,
 .StickerMarkdown h5,
 .StickerMarkdown h6 {
@@ -13,4 +22,9 @@
 .StickerMarkdown ul,
 .StickerMarkdown ol {
   padding-left: .75em;
+}
+
+.StickerMarkdown li:has(> ul),
+.StickerMarkdown li:has(> ol) {
+  margin-bottom: .25em;
 }
