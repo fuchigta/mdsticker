@@ -10,16 +10,15 @@ import remarkGfm from "remark-gfm";
 interface Props {
   className?: string;
   markdown: string;
+  onTaskCheckChange?: (task: string, checked: boolean) => void;
 }
 
 const remarkPlugins = [remarkGfm];
 
-function StickerMarkdown({ className, markdown }: Props) {
+function StickerMarkdown({ className, markdown, onTaskCheckChange }: Props) {
   return (
     <div
-      className={
-        className ? `StickerMarkdown, ${className}` : "StickerMarkdown"
-      }
+      className={className ? `StickerMarkdown ${className}` : "StickerMarkdown"}
     >
       <Markdown
         children={markdown}
@@ -46,12 +45,43 @@ function StickerMarkdown({ className, markdown }: Props) {
           a(props) {
             const { children, href, ...rest } = props;
             return (
-              <a {...rest} onClick={(e) => {
-                e.preventDefault();
-                invoke("open_url", { url: href });
-              }}>
+              <a
+                {...rest}
+                onClick={(e) => {
+                  e.preventDefault();
+                  invoke("open_url", { url: href });
+                }}
+              >
                 {children}
               </a>
+            );
+          },
+          input(props) {
+            let { children, type, disabled, onChange, ...rest } = props;
+
+            if (type === "checkbox" && onTaskCheckChange) {
+              disabled = false;
+
+              onChange = (e) => {
+                e.preventDefault();
+                const task = Array.from(e.target.parentElement!.childNodes)
+                  .filter((e) => e.nodeType === Node.TEXT_NODE)
+                  .map((e) => e.textContent)
+                  .join("")
+                  .trim();
+                onTaskCheckChange(task, e.target.checked);
+              };
+            }
+
+            return (
+              <input
+                {...rest}
+                type={type}
+                disabled={disabled}
+                onChange={onChange}
+              >
+                {children}
+              </input>
             );
           },
         }}

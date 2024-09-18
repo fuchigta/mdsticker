@@ -2,8 +2,19 @@ import { Fragment, useEffect, useState } from "react";
 import "./base.css";
 import "./App.css";
 import { invoke } from "@tauri-apps/api";
-import { VscEdit, VscNewFile, VscPin, VscPinned, VscSave, VscSymbolColor, VscTrash } from "react-icons/vsc";
+import {
+  VscEdit,
+  VscNewFile,
+  VscPin,
+  VscPinned,
+  VscSave,
+  VscSymbolColor,
+  VscTrash,
+} from "react-icons/vsc";
+import Picker from "@emoji-mart/react";
+import data from "@emoji-mart/data";
 import StickerMarkdown from "./StickerMarkdown";
+import { MdEmojiEmotions } from "react-icons/md";
 
 interface Sticker {
   uuid: string;
@@ -38,6 +49,7 @@ function App() {
   const [markdown, setMarkdown] = useState("");
   const [color, setColor] = useState("");
   const [pinned, setPinned] = useState(false);
+  const [isPickerOpen, setPickerOpen] = useState(false);
 
   useEffect(() => {
     sticker.load().then(({ markdown, color, pinned }: Sticker) => {
@@ -70,7 +82,9 @@ function App() {
             {pinned ? <VscPinned /> : <VscPin />}
           </button>
           <div className="color-button">
-            <button><VscSymbolColor /></button>
+            <button>
+              <VscSymbolColor />
+            </button>
             <input
               type="color"
               onChange={(e) => {
@@ -80,6 +94,33 @@ function App() {
               }}
             />
           </div>
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              setPickerOpen(!isPickerOpen);
+            }}
+          >
+            {isPickerOpen ? (
+              <Picker
+                data={data}
+                locale="ja"
+                set="iphone"
+                onEmojiSelect={(emojiData: any) => {
+                  console.log(emojiData);
+
+                  setMarkdown(markdown + emojiData.native);
+
+                  if (!editting) {
+                    sticker.saveMarkdown(markdown);
+                  }
+
+                  setPickerOpen(false);
+                }}
+              />
+            ) : (
+              <MdEmojiEmotions />
+            )}
+          </button>
         </div>
         <div className="manager">
           <button
@@ -111,7 +152,18 @@ function App() {
               }}
             ></textarea>
           ) : (
-            <StickerMarkdown className="textarea" markdown={markdown} />
+            <StickerMarkdown
+              className="textarea"
+              markdown={markdown}
+              onTaskCheckChange={(task, checked) => {
+                const next = markdown.replace(
+                  new RegExp(`\\[[x ]\\]\\s+${task}`),
+                  `[${checked ? "x" : " "}] ${task}`
+                );
+                setMarkdown(next);
+                sticker.saveMarkdown(next);
+              }}
+            />
           )}
         </Fragment>
       </main>
