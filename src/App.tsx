@@ -95,19 +95,20 @@ function App() {
             />
           </div>
           <button
+            className="emoji-picker-button"
             onClick={(e) => {
               e.preventDefault();
               setPickerOpen(!isPickerOpen);
             }}
           >
+            <MdEmojiEmotions />
             {isPickerOpen ? (
               <Picker
                 data={data}
                 locale="ja"
                 set="iphone"
+                maxFrequentRows={1}
                 onEmojiSelect={(emojiData: any) => {
-                  console.log(emojiData);
-
                   setMarkdown(markdown + emojiData.native);
 
                   if (!editting) {
@@ -118,7 +119,7 @@ function App() {
                 }}
               />
             ) : (
-              <MdEmojiEmotions />
+              <></>
             )}
           </button>
         </div>
