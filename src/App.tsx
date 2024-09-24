@@ -99,6 +99,12 @@ function App() {
             className="emoji-picker-button"
             onClick={(e) => {
               e.preventDefault();
+
+              const target = e.target as any;
+              if (target.localName === 'em-emoji-picker') {
+                return;
+              }
+
               setPickerOpen(!isPickerOpen);
             }}
           >
