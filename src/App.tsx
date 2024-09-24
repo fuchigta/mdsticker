@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import "./base.css";
 import "./App.css";
 import { invoke } from "@tauri-apps/api";
@@ -50,6 +50,7 @@ function App() {
   const [color, setColor] = useState("");
   const [pinned, setPinned] = useState(false);
   const [isPickerOpen, setPickerOpen] = useState(false);
+  const textArea = useRef<HTMLTextAreaElement>(null)
 
   useEffect(() => {
     sticker.load().then(({ markdown, color, pinned }: Sticker) => {
@@ -109,9 +110,13 @@ function App() {
                 set="iphone"
                 maxFrequentRows={1}
                 onEmojiSelect={(emojiData: any) => {
-                  setMarkdown(markdown + emojiData.native);
-
-                  if (!editting) {
+                  if (textArea.current) {
+                    // 編集中だったら現在のカーソル位置に絵文字を挿入
+                    const pos = textArea.current.selectionStart;
+                    setMarkdown(markdown.slice(0, pos) + emojiData.native + markdown.slice(pos))
+                  } else {
+                    // 編集中以外は末尾に挿入
+                    setMarkdown(markdown + emojiData.native);
                     sticker.saveMarkdown(markdown);
                   }
 
@@ -147,6 +152,7 @@ function App() {
           {editting ? (
             <textarea
               value={markdown}
+              ref={textArea}
               onChange={(e) => {
                 e.preventDefault();
                 setMarkdown(e.target.value);

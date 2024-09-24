@@ -28,3 +28,8 @@
 .StickerMarkdown li:has(> ol) {
   margin-bottom: .25em;
 }
+
+.StickerMarkdown a,
+.StickerMarkdown input[type="checkbox"] {
+  cursor: pointer;
+}
