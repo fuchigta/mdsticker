@@ -3,8 +3,9 @@ import "./base.css";
 import "./TrashBoxApp.css";
 import { invoke } from "@tauri-apps/api";
 import { VscCheck, VscCheckAll, VscReply, VscTrash } from "react-icons/vsc";
-import { appWindow } from "@tauri-apps/api/window";
+import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import StickerMarkdown from "./StickerMarkdown";
+const appWindow = getCurrentWebviewWindow()
 
 interface Sticker {
   checked: boolean;

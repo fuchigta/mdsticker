@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useRef, useState } from "react";
 import "./base.css";
 import "./App.css";
-import { invoke } from "@tauri-apps/api";
+import { invoke } from "@tauri-apps/api/core";
 import {
   VscEdit,
   VscNewFile,

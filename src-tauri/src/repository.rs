@@ -2,7 +2,7 @@ use std::str::FromStr;
 
 use sqlx::{
     sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions, SqliteSynchronous},
-    SqlitePool, Row
+    Row, SqlitePool,
 };
 
 use crate::Sticker;
@@ -46,7 +46,11 @@ pub(crate) async fn insert_sticker(pool: &SqlitePool, sticker: Sticker) -> DbRes
     Ok(())
 }
 
-pub(crate) async fn update_sticker_markdown(pool: &SqlitePool, uuid: &str, markdown: &str) -> DbResult<()> {
+pub(crate) async fn update_sticker_markdown(
+    pool: &SqlitePool,
+    uuid: &str,
+    markdown: &str,
+) -> DbResult<()> {
     let mut tx = pool.begin().await?;
 
     sqlx::query("UPDATE sticker SET markdown=? WHERE uuid=?")
@@ -60,7 +64,11 @@ pub(crate) async fn update_sticker_markdown(pool: &SqlitePool, uuid: &str, markd
     Ok(())
 }
 
-pub(crate) async fn update_sticker_color(pool: &SqlitePool, uuid: &str, color: &str) -> DbResult<()> {
+pub(crate) async fn update_sticker_color(
+    pool: &SqlitePool,
+    uuid: &str,
+    color: &str,
+) -> DbResult<()> {
     let mut tx = pool.begin().await?;
 
     sqlx::query("UPDATE sticker SET color=? WHERE uuid=?")
@@ -74,7 +82,12 @@ pub(crate) async fn update_sticker_color(pool: &SqlitePool, uuid: &str, color: &
     Ok(())
 }
 
-pub(crate) async fn update_sticker_position(pool: &SqlitePool, uuid: &str, pos_x: i32, pos_y: i32) -> DbResult<()> {
+pub(crate) async fn update_sticker_position(
+    pool: &SqlitePool,
+    uuid: &str,
+    pos_x: i32,
+    pos_y: i32,
+) -> DbResult<()> {
     let mut tx = pool.begin().await?;
 
     sqlx::query("UPDATE sticker SET pos_x=?, pos_y=? WHERE uuid=?")
@@ -89,7 +102,12 @@ pub(crate) async fn update_sticker_position(pool: &SqlitePool, uuid: &str, pos_x
     Ok(())
 }
 
-pub(crate) async fn update_sticker_size(pool: &SqlitePool, uuid: &str, width: u32, height: u32) -> DbResult<()> {
+pub(crate) async fn update_sticker_size(
+    pool: &SqlitePool,
+    uuid: &str,
+    width: u32,
+    height: u32,
+) -> DbResult<()> {
     let mut tx = pool.begin().await?;
 
     sqlx::query("UPDATE sticker SET height=?, width=? WHERE uuid=?")
@@ -112,7 +130,7 @@ pub(crate) async fn toggle_sticker_pinned(pool: &SqlitePool, uuid: &str) -> DbRe
 
     for row in rows {
         let pinned: i8 = row.try_get("pinned")?;
-        return Ok(pinned != 0)
+        return Ok(pinned != 0);
     }
 
     Ok(false)
@@ -164,19 +182,30 @@ pub(crate) async fn recover_stickers(pool: &SqlitePool, stickers: &Vec<Sticker>)
 }
 
 pub(crate) async fn list_stickers(pool: &SqlitePool) -> DbResult<Vec<Sticker>> {
-    let stickers = sqlx::query_as::<_, Sticker>("SELECT * FROM sticker WHERE archived = 0 ORDER BY updated_at desc").fetch_all(pool).await?;
+    let stickers = sqlx::query_as::<_, Sticker>(
+        "SELECT * FROM sticker WHERE archived = 0 ORDER BY updated_at desc",
+    )
+    .fetch_all(pool)
+    .await?;
 
     Ok(stickers)
 }
 
 pub(crate) async fn list_archived_stickers(pool: &SqlitePool) -> DbResult<Vec<Sticker>> {
-    let stickers = sqlx::query_as::<_, Sticker>("SELECT * FROM sticker WHERE archived = 1 ORDER BY updated_at desc").fetch_all(pool).await?;
+    let stickers = sqlx::query_as::<_, Sticker>(
+        "SELECT * FROM sticker WHERE archived = 1 ORDER BY updated_at desc",
+    )
+    .fetch_all(pool)
+    .await?;
 
     Ok(stickers)
 }
 
 pub(crate) async fn get_sticker(pool: &SqlitePool, uuid: &str) -> DbResult<Sticker> {
-    let sticker = sqlx::query_as::<_, Sticker>("SELECT * FROM sticker WHERE uuid = ?").bind(uuid).fetch_one(pool).await?;
+    let sticker = sqlx::query_as::<_, Sticker>("SELECT * FROM sticker WHERE uuid = ?")
+        .bind(uuid)
+        .fetch_one(pool)
+        .await?;
 
     Ok(sticker)
 }
