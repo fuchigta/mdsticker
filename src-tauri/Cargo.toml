@@ -1,6 +1,6 @@
 [package]
 name = "mdsticker"
-version = "1.0.0"
+version = "1.0.1"
 description = "A simple sticky note app where you can write in markdown."
 authors = ["fuchigta"]
 edition = "2021"
