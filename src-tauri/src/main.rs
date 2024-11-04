@@ -3,14 +3,28 @@
 
 mod repository;
 
+use rand::Rng;
 use std::path::PathBuf;
 
 use repository::list_stickers;
 use serde::{Deserialize, Serialize};
 use tauri::{
-    async_runtime::block_on, AppHandle, CustomMenuItem, Manager, State, SystemTray, SystemTrayEvent, SystemTrayMenu, SystemTrayMenuItem, WindowEvent
+    async_runtime::block_on, AppHandle, CustomMenuItem, Manager, State, SystemTray,
+    SystemTrayEvent, SystemTrayMenu, SystemTrayMenuItem, WindowEvent,
 };
 use uuid::Uuid;
+
+fn generate_random_color() -> String {
+    let mut rng = rand::thread_rng();
+
+    // 0-255の範囲で3つの数値（R,G,B）を生成
+    let r: u8 = rng.gen();
+    let g: u8 = rng.gen();
+    let b: u8 = rng.gen();
+
+    // 16進数の文字列に変換（桁数を揃えるためにformat!マクロを使用）
+    format!("#{:02x}{:02x}{:02x}", r, g, b)
+}
 
 #[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
 pub struct Sticker {
@@ -23,7 +37,7 @@ pub struct Sticker {
     width: u32,
     pinned: bool,
     created_at: String,
-    updated_at: String
+    updated_at: String,
 }
 
 impl Sticker {
@@ -31,24 +45,22 @@ impl Sticker {
         Sticker {
             uuid: uuid.to_string(),
             markdown: "".to_string(),
-            color: "".to_string(),
+            color: generate_random_color(),
             pos_x,
             pos_y,
             height,
             width,
             pinned: false,
             created_at: "".to_string(),
-            updated_at: "".to_string()
+            updated_at: "".to_string(),
         }
     }
 }
 
 #[tauri::command]
-async fn open_url(
-    handle: tauri::AppHandle,
-    url: &str
-) -> Result<(), String> {
-    tauri::api::shell::open(&handle.app_handle().shell_scope(), url, None).map_err(|e| e.to_string())?;
+async fn open_url(handle: tauri::AppHandle, url: &str) -> Result<(), String> {
+    tauri::api::shell::open(&handle.app_handle().shell_scope(), url, None)
+        .map_err(|e| e.to_string())?;
 
     Ok(())
 }
@@ -83,6 +95,7 @@ async fn save_sticker_color(
     window: tauri::Window,
     color: &str,
 ) -> Result<(), String> {
+    println!("color: {}", &color);
     repository::update_sticker_color(&pool, window.label(), color)
         .await
         .map_err(|e| e.to_string())
@@ -105,7 +118,7 @@ async fn new_sticker_pool(pool: &sqlx::SqlitePool, handle: tauri::AppHandle) -> 
         .minimizable(false)
         .maximizable(false)
         .closable(false)
-        .inner_size(400.0, 400.0)
+        .inner_size(500.0, 400.0)
         .build()
         .map_err(|e| e.to_string())?;
 
@@ -123,7 +136,7 @@ async fn new_sticker_pool(pool: &sqlx::SqlitePool, handle: tauri::AppHandle) -> 
 async fn remove_sticker(
     pool: State<'_, sqlx::SqlitePool>,
     window: tauri::Window,
-    handle: tauri::AppHandle
+    handle: tauri::AppHandle,
 ) -> Result<(), String> {
     repository::remove_sticker(&pool, window.label())
         .await
@@ -133,7 +146,7 @@ async fn remove_sticker(
     match handle.get_window("trashbox") {
         Some(w) => {
             w.emit("reload", "").map_err(|e| e.to_string())?;
-        },
+        }
         None => {}
     }
 
@@ -152,9 +165,7 @@ async fn load_sticker(
 }
 
 #[tauri::command]
-async fn load_trashbox_stickers(
-    pool: State<'_, sqlx::SqlitePool>
-) -> Result<Vec<Sticker>, String> {
+async fn load_trashbox_stickers(pool: State<'_, sqlx::SqlitePool>) -> Result<Vec<Sticker>, String> {
     let stickers = repository::list_archived_stickers(&pool)
         .await
         .map_err(|e| e.to_string())?;
@@ -164,7 +175,7 @@ async fn load_trashbox_stickers(
 #[tauri::command]
 async fn delete_stickers(
     pool: State<'_, sqlx::SqlitePool>,
-    stickers: Vec<Sticker>
+    stickers: Vec<Sticker>,
 ) -> Result<(), String> {
     repository::delete_stickers(&pool, &stickers)
         .await
@@ -176,7 +187,7 @@ async fn delete_stickers(
 async fn recover_stickers(
     pool: State<'_, sqlx::SqlitePool>,
     handle: tauri::AppHandle,
-    stickers: Vec<Sticker>
+    stickers: Vec<Sticker>,
 ) -> Result<(), String> {
     repository::recover_stickers(&pool, &stickers)
         .await
@@ -259,7 +270,10 @@ fn path_mapper(mut app_path: PathBuf, connection_string: &str) -> String {
 
 fn main() {
     let tray_menu = SystemTrayMenu::new()
-        .add_item(CustomMenuItem::new("new_sticker".to_string(), "New sticker"))
+        .add_item(CustomMenuItem::new(
+            "new_sticker".to_string(),
+            "New sticker",
+        ))
         .add_item(CustomMenuItem::new("trashbox".to_string(), "Trashbox"))
         .add_native_item(SystemTrayMenuItem::Separator)
         .add_item(CustomMenuItem::new("quit".to_string(), "Quit"));
@@ -281,7 +295,10 @@ fn main() {
         .setup(|app| {
             let dir = app_path(app.handle());
             std::fs::create_dir_all(&dir).expect("create app dir failed");
-            let pool = block_on(repository::create_sqlite_pool(&path_mapper(dir, "sqlite:app.db")))?;
+            let pool = block_on(repository::create_sqlite_pool(&path_mapper(
+                dir,
+                "sqlite:app.db",
+            )))?;
 
             block_on(repository::migrate_database(&pool))?;
             block_on(restore_stickers(&pool, app.handle()))?;
