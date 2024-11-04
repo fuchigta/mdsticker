@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import "./base.css";
 import "./TrashBoxApp.css";
-import { invoke } from "@tauri-apps/api";
+import { invoke } from "@tauri-apps/api/core";
 import { VscCheck, VscCheckAll, VscReply, VscTrash } from "react-icons/vsc";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import StickerMarkdown from "./StickerMarkdown";
