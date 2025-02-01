@@ -6,6 +6,7 @@ import Markdown from "react-markdown";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { solarizedDarkAtom } from "react-syntax-highlighter/dist/esm/styles/prism";
 import remarkGfm from "remark-gfm";
+import rehypeRaw from "rehype-raw";
 
 interface Props {
   className?: string;
@@ -22,6 +23,7 @@ function StickerMarkdown({ className, markdown, onTaskCheckChange }: Props) {
     >
       <Markdown
         children={markdown}
+        rehypePlugins={[rehypeRaw]}
         remarkPlugins={remarkPlugins}
         components={{
           code(props) {
