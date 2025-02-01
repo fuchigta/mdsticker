@@ -4,7 +4,19 @@
 .StickerMarkdown h4,
 .StickerMarkdown h5,
 .StickerMarkdown h6 {
-  margin-bottom: .25em;
+  margin-bottom: 0.25em;
+}
+
+.StickerMarkdown h1 {
+  font-size: 1.5em;
+}
+
+.StickerMarkdown h2 {
+  font-size: 1.25em;
+}
+
+.StickerMarkdown h3 {
+  font-size: 1.1em;
 }
 
 .StickerMarkdown h4,
@@ -21,15 +33,35 @@
 
 .StickerMarkdown ul,
 .StickerMarkdown ol {
-  padding-left: .75em;
+  padding-left: 0.75em;
 }
 
 .StickerMarkdown li:has(> ul),
 .StickerMarkdown li:has(> ol) {
-  margin-bottom: .25em;
+  margin-bottom: 0.25em;
 }
 
 .StickerMarkdown a,
 .StickerMarkdown input[type="checkbox"] {
   cursor: pointer;
+}
+
+.StickerMarkdown table {
+  border-collapse: collapse;
+  margin-bottom: 0.75em;
+}
+
+.StickerMarkdown td,
+.StickerMarkdown th {
+  border: 1px solid;
+  padding: 0.25em 0.75em;
+}
+
+.StickerMarkdown th {
+  background-color: rgba(0, 0, 0, 0.125);
+}
+
+.StickerMarkdown hr {
+  margin-top: 0.75em;
+  margin-bottom: 0.75em;
 }
