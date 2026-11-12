@@ -1,0 +1,7 @@
+# cccc (https://github.com/moznion/cccc) configuration.
+#
+# Thresholds are standard values. As of introduction, the measured maxima
+# across the repository (12 files / 102 functions) are cognitive 4 and
+# cyclomatic 5 (both App in src/App.tsx), leaving ample headroom.
+max-cognitive = 15
+max-cyclomatic = 10
