@@ -3,5 +3,9 @@
 # Thresholds are standard values. As of introduction, the measured maxima
 # across the repository (12 files / 102 functions) are cognitive 4 and
 # cyclomatic 5 (both App in src/App.tsx), leaving ample headroom.
-max-cognitive = 15
-max-cyclomatic = 10
+#
+# 2026-11-19: Re-measured; the maxima are unchanged (12 files / 102 functions,
+# cognitive 4 / cyclomatic 5, both App in src/App.tsx). Thresholds tightened
+# from 15 / 10 to 6 / 7 (measured maxima + 2).
+max-cognitive = 6
+max-cyclomatic = 7
