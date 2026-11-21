@@ -386,3 +386,131 @@ pub fn run() {
             _ => {}
         });
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use proptest::prelude::*;
+
+    /// Number of cases per property. Reduced from proptest's default of 256
+    /// to keep CI fast. Set in code (not via `PROPTEST_CASES`) so local runs
+    /// and CI use the same value.
+    const CASES: u32 = 64;
+
+    /// `#rrggbb` with lowercase hex digits, as produced by `generate_random_color`.
+    fn is_lower_hex_color(s: &str) -> bool {
+        s.len() == 7
+            && s.starts_with('#')
+            && s[1..].chars().all(|c| matches!(c, '0'..='9' | 'a'..='f'))
+    }
+
+    /// All fields of a sticker, for equality checks (`Sticker` does not derive
+    /// `PartialEq`, and production code is left untouched).
+    #[allow(clippy::type_complexity)]
+    fn fields(s: &Sticker) -> (&str, &str, &str, i32, i32, u32, u32, bool, &str, &str) {
+        (
+            &s.uuid,
+            &s.markdown,
+            &s.color,
+            s.pos_x,
+            s.pos_y,
+            s.height,
+            s.width,
+            s.pinned,
+            &s.created_at,
+            &s.updated_at,
+        )
+    }
+
+    fn arb_sticker() -> impl Strategy<Value = Sticker> {
+        (
+            any::<String>(),
+            any::<String>(),
+            any::<String>(),
+            any::<i32>(),
+            any::<i32>(),
+            any::<u32>(),
+            any::<u32>(),
+            any::<bool>(),
+            any::<String>(),
+            any::<String>(),
+        )
+            .prop_map(
+                |(
+                    uuid,
+                    markdown,
+                    color,
+                    pos_x,
+                    pos_y,
+                    height,
+                    width,
+                    pinned,
+                    created_at,
+                    updated_at,
+                )| {
+                    Sticker {
+                        uuid,
+                        markdown,
+                        color,
+                        pos_x,
+                        pos_y,
+                        height,
+                        width,
+                        pinned,
+                        created_at,
+                        updated_at,
+                    }
+                },
+            )
+    }
+
+    proptest! {
+        #![proptest_config(ProptestConfig::with_cases(CASES))]
+
+        /// The connection string is always split at its first `:`. The scheme
+        /// part is generated without `:` and the rest may contain any `:`, so
+        /// every input contains at least one `:` (inputs without one make
+        /// `path_mapper` panic by design and are out of scope here).
+        #[test]
+        fn path_mapper_has_sqlite_prefix_and_db_suffix(
+            app_dir in "[a-zA-Z0-9_./-]{0,32}",
+            scheme in "[^:]{0,8}",
+            db in any::<String>(),
+        ) {
+            let mapped = path_mapper(PathBuf::from(app_dir), &format!("{scheme}:{db}"));
+            prop_assert!(mapped.starts_with("sqlite:"), "{mapped:?}");
+            prop_assert!(mapped.ends_with(&db), "{mapped:?} does not end with {db:?}");
+        }
+
+        #[test]
+        fn random_color_is_lowercase_hex(calls in 1usize..16) {
+            for _ in 0..calls {
+                let color = generate_random_color();
+                prop_assert!(is_lower_hex_color(&color), "{color:?}");
+            }
+        }
+
+        #[test]
+        fn new_sticker_has_initial_values(
+            uuid in any::<String>(),
+            pos_x in any::<i32>(),
+            pos_y in any::<i32>(),
+            height in any::<u32>(),
+            width in any::<u32>(),
+        ) {
+            let s = Sticker::new(&uuid, pos_x, pos_y, height, width);
+            prop_assert_eq!(&s.uuid, &uuid);
+            prop_assert_eq!((s.pos_x, s.pos_y, s.height, s.width), (pos_x, pos_y, height, width));
+            prop_assert_eq!(&s.markdown, "");
+            prop_assert!(!s.pinned);
+            prop_assert!(is_lower_hex_color(&s.color), "{:?}", s.color);
+        }
+
+        #[test]
+        fn sticker_json_round_trip(sticker in arb_sticker()) {
+            let json = serde_json::to_string(&sticker).unwrap();
+            let decoded: Sticker = serde_json::from_str(&json).unwrap();
+            prop_assert_eq!(fields(&decoded), fields(&sticker));
+        }
+    }
+}
