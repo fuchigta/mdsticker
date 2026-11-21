@@ -3,7 +3,7 @@
 
 mod repository;
 
-use rand::Rng;
+use rand::RngExt;
 use std::path::PathBuf;
 
 use repository::list_stickers;
@@ -15,12 +15,12 @@ use tauri_plugin_shell::ShellExt;
 use uuid::Uuid;
 
 fn generate_random_color() -> String {
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
 
     // 0-255の範囲で3つの数値（R,G,B）を生成
-    let r: u8 = rng.gen();
-    let g: u8 = rng.gen();
-    let b: u8 = rng.gen();
+    let r: u8 = rng.random();
+    let g: u8 = rng.random();
+    let b: u8 = rng.random();
 
     // 16進数の文字列に変換（桁数を揃えるためにformat!マクロを使用）
     format!("#{:02x}{:02x}{:02x}", r, g, b)
