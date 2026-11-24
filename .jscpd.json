@@ -1,0 +1,8 @@
+{
+  "threshold": 2.8,
+  "ignore": [
+    "package-lock.json",
+    "src-tauri/Cargo.lock"
+  ],
+  "reporters": ["console"]
+}
