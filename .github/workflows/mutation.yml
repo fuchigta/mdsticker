@@ -1,0 +1,206 @@
+name: mutation
+
+# Mutation testing (cargo-mutants): checks that the tests detect bugs in the
+# code a change touches. Only mutants on lines changed against the base are
+# tested (--in-diff). The scope is set in src-tauri/.cargo/mutants.toml: the
+# pure functions in src/lib.rs covered by the proptest properties
+# (generate_random_color, Sticker::new, path_mapper).
+#
+# - Tool: cargo-mutants 27.1.0 (MIT), not a Cargo.toml dependency. The official
+#   release binary is installed after a sha256 check (cargo install would build
+#   it for ~4 minutes on every run). The tests are a single proptest binary
+#   (~2 s), so cargo-nextest is not used.
+# - Runner: ubuntu-latest. The lib crate builds on Linux with the GTK /
+#   WebKitGTK dev packages; the `test` job in check.yml already runs
+#   `cargo test` this way, and the same apt step is reused here.
+# - Base: origin/<base branch> for pull_request (git diff origin/main...HEAD),
+#   the pre-push commit (github.event.before) for pushes to main.
+# - The diff is made with `git diff --relative` inside src-tauri/. A
+#   repository-relative diff (src-tauri/src/lib.rs) does not match the crate's
+#   paths and cargo-mutants silently finds 0 mutants (see mutants-diff.sh).
+# - No mutants in the diff (non-Rust changes, test-only changes, functions out
+#   of scope, empty diff) is treated as success without testing anything.
+#   cargo-mutants itself does not fall back to a full run on an empty diff; it
+#   reports "Diff file is empty" and exits 0 (measured 2026-11-27).
+# - Against empty runs: the gate fails if the number of tested mutants summed
+#   over the shards differs from the number counted by plan, or if no
+#   outcomes.json exists. A diff that does not match the tree makes
+#   `cargo mutants --list` exit 5 with no output, which would read as 0 mutants,
+#   so plan uses pipefail.
+# - Shards: one per 10 mutants, at most 4 (round-robin). With the current scope
+#   there are at most 4 mutants, so this is always a single shard; the split
+#   only matters if the scope is widened.
+#
+# Gate (MAX_MISSED) rationale. Measured 2026-11-27 locally with cargo-mutants
+# 27.1.0:
+# - Whole scope: 4 mutants (2 in generate_random_color, 2 in path_mapper;
+#   Sticker::new yields none), 4 caught / 0 missed / 0 unviable, score 100%,
+#   2m30s (unmutated baseline: 4 s build + 2 s test, auto timeout 20 s).
+# - Past diffs: 5a2c4cd (rand 0.10 API in generate_random_color) has 2 mutants
+#   in the diff, both caught; dc65a3c (proptest properties) is test-only and has
+#   0 mutants.
+# - No equivalent mutants were found. Since the whole scope has 0 survivors, the
+#   limit is 0: any survivor in the diff fails. Kill survivors with tests; if an
+#   equivalent mutant ever appears, do not use #[mutants::skip] (it removes the
+#   whole function and loses detection power) but explain it in the PR and
+#   raise this limit.
+#
+# Runs only when the crate's sources or the mutation testing setup change; plan
+# also checks the diff itself, so this is only a coarse filter.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src-tauri/src/**'
+      - 'src-tauri/.cargo/mutants.toml'
+      - '.github/workflows/mutation.yml'
+      - '.github/scripts/install-cargo-mutants.sh'
+      - '.github/scripts/mutants-*.sh'
+  pull_request:
+    paths:
+      - 'src-tauri/src/**'
+      - 'src-tauri/.cargo/mutants.toml'
+      - '.github/workflows/mutation.yml'
+      - '.github/scripts/install-cargo-mutants.sh'
+      - '.github/scripts/mutants-*.sh'
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  # When bumping the version, update the sha256 too: sha256sum of
+  # cargo-mutants-x86_64-unknown-linux-gnu.tar.gz from
+  # https://github.com/sourcefrog/cargo-mutants/releases
+  CARGO_MUTANTS_VERSION: 27.1.0
+  CARGO_MUTANTS_SHA256: dfe6dc37d0342c891d2829b5a695aa57c2d0edecef7e7d0399a30cc6e206411e
+  # Upper bound on missed mutants in the diff (rationale at the top).
+  MAX_MISSED: 0
+
+jobs:
+  plan:
+    name: mutants (plan)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: src-tauri
+    outputs:
+      count: ${{ steps.list.outputs.count }}
+      shards: ${{ steps.list.outputs.shards }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Install cargo-mutants
+        run: ../.github/scripts/install-cargo-mutants.sh
+
+      - name: Diff
+        env:
+          BASE: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || github.event.before }}
+        run: ../.github/scripts/mutants-diff.sh "$BASE" > git.diff
+
+      - name: List mutants in diff
+        id: list
+        run: |
+          # Do not let tee hide failures such as a diff that does not match the tree (exit 5).
+          set -o pipefail
+          cargo mutants --list --in-diff git.diff | tee mutants-list.txt
+          count=$(wc -l < mutants-list.txt)
+          # One shard per 10 mutants, at most 4. No shards when there are 0 mutants.
+          n=$(( (count + 9) / 10 )); (( n > 4 )) && n=4
+          shards=$(jq -cn --argjson n "$n" '[range($n)]')
+          echo "Mutants in diff: ${count} (${n} shard(s))"
+          echo "count=${count}" >> "$GITHUB_OUTPUT"
+          echo "shards=${shards}" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mutants-diff
+          path: |
+            src-tauri/git.diff
+            src-tauri/mutants-list.txt
+
+  mutants:
+    name: mutants (shard ${{ matrix.shard }})
+    needs: plan
+    if: needs.plan.outputs.count != '0'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: src-tauri
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: ${{ fromJSON(needs.plan.outputs.shards) }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # Same as the test job in check.yml: GTK / WebKitGTK let the crate build
+      # on Linux. Debug builds use devUrl, so no frontend build is needed.
+      - name: install system dependencies
+        working-directory: .
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libgtk-3-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+          shared-key: mutants
+
+      - name: Install cargo-mutants
+        run: ../.github/scripts/install-cargo-mutants.sh
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: mutants-diff
+          path: src-tauri
+
+      # Survivors (exit 2) and timeouts (3) do not stop this step; the gate job
+      # judges the counts. Anything else (e.g. unmutated tests failing, 4) fails
+      # this job.
+      - name: Mutants
+        run: |
+          set +e
+          cargo mutants --in-diff git.diff --in-place --no-shuffle \
+            --shard ${{ matrix.shard }}/${{ strategy.job-total }} --sharding round-robin
+          code=$?
+          case "$code" in
+            0|2|3) exit 0 ;;
+            *) echo "cargo-mutants failed with exit code ${code}"; exit "$code" ;;
+          esac
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mutants-out-${{ matrix.shard }}
+          path: src-tauri/mutants.out
+
+  gate:
+    name: mutants (gate)
+    needs: [plan, mutants]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        if: needs.plan.outputs.count != '0'
+        with:
+          pattern: mutants-out-*
+
+      - name: Gate
+        env:
+          PLAN_RESULT: ${{ needs.plan.result }}
+          MUTANTS_RESULT: ${{ needs.mutants.result }}
+          EXPECTED: ${{ needs.plan.outputs.count }}
+        run: .github/scripts/mutants-gate.sh
