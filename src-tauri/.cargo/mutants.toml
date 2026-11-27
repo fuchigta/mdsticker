@@ -1,5 +1,12 @@
 # cargo-mutants (mutation testing) configuration. CI: .github/workflows/mutation.yml.
 #
+# Local run (in src-tauri/, with cargo-mutants 27.1.0 installed):
+#   cargo mutants --list                     # mutants in scope
+#   cargo mutants                            # the whole scope (~2.5 min)
+#   ../.github/scripts/mutants-diff.sh origin/main > git.diff
+#   cargo mutants --in-diff git.diff         # only the diff against main (as CI)
+# Results are in mutants.out/ (caught.txt / missed.txt / outcomes.json).
+#
 # Scope: only the pure functions in src/lib.rs that the proptest properties in
 # `mod tests` cover. Everything else (Tauri commands, `run`, `restore_stickers`,
 # and the async SQLite code in src/repository.rs) needs an AppHandle / State /
