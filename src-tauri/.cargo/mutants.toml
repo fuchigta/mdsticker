@@ -1,0 +1,30 @@
+# cargo-mutants (mutation testing) configuration. CI: .github/workflows/mutation.yml.
+#
+# Local run (in src-tauri/, with cargo-mutants 27.1.0 installed):
+#   cargo mutants --list                     # mutants in scope
+#   cargo mutants                            # the whole scope (~2.5 min)
+#   ../.github/scripts/mutants-diff.sh origin/main > git.diff
+#   cargo mutants --in-diff git.diff         # only the diff against main (as CI)
+# Results are in mutants.out/ (caught.txt / missed.txt / outcomes.json).
+#
+# Scope: only the pure functions in src/lib.rs that the proptest properties in
+# `mod tests` cover. Everything else (Tauri commands, `run`, `restore_stickers`,
+# and the async SQLite code in src/repository.rs) needs an AppHandle / State /
+# real database and has no tests, so every mutant there would survive and the
+# gate would only measure missing tests. Widen this list together with tests.
+#
+# `examine_re` is matched against mutant names as shown by `cargo mutants --list`
+# (e.g. "src/lib.rs:265:5: replace path_mapper -> String with String::new()"), so
+# functions are selected by name, not by line number.
+# - `Sticker::new` currently yields no mutants (it returns `Self` and `Sticker`
+#   has no `Default`); it is listed so that mutants added there later are tested.
+# - `#[cfg(test)]` modules are skipped by cargo-mutants automatically.
+examine_globs = ["src/lib.rs"]
+examine_re = [
+  'replace generate_random_color ',
+  ' in generate_random_color$',
+  'replace Sticker::new ',
+  ' in Sticker::new$',
+  'replace path_mapper ',
+  ' in path_mapper$',
+]
