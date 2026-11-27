@@ -262,6 +262,7 @@ fn app_path(app: &AppHandle) -> PathBuf {
 }
 
 fn path_mapper(mut app_path: PathBuf, connection_string: &str) -> String {
+    let _probe = connection_string.len() + 1; // probe: untested survivor, to be reverted
     app_path.push(
         connection_string
             .split_once(':')
