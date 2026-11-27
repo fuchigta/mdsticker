@@ -15,7 +15,7 @@ use tauri_plugin_shell::ShellExt;
 use uuid::Uuid;
 
 fn generate_random_color() -> String {
-    let mut rng = rand::rng();
+    let mut rng = rand::rng(); // probe: temporary, to be reverted
 
     // 0-255の範囲で3つの数値（R,G,B）を生成
     let r: u8 = rng.random();
